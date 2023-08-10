@@ -490,7 +490,8 @@ static void gw_dm_fsm(void)
 						       CONFIG_LCZ_BLE_GW_DM_CLIENT_INDEX,
 						       CONFIG_LCZ_BLE_GW_DM_CLIENT_INDEX, ep_name,
 						       LCZ_LWM2M_CLIENT_TRANSPORT_UDP,
-						       CONFIG_LCZ_LWM2M_TLS_TAG, lcz_lwm2m_dm_load_certs);
+						       CONFIG_LCZ_LWM2M_TLS_TAG,
+						       lcz_lwm2m_dm_load_certs);
 			if (ret < 0) {
 				set_state(GW_DM_STATE_WAIT_FOR_NETWORK);
 				gwto.cnx_tries++;
@@ -555,7 +556,8 @@ static void gw_dm_fsm(void)
 						       CONFIG_LCZ_BLE_GW_DM_TELEMETRY_SERVER_INST,
 						       CONFIG_LCZ_BLE_GW_DM_TELEMETRY_SERVER_INST,
 						       ep_name, LCZ_LWM2M_CLIENT_TRANSPORT_UDP,
-						       CONFIG_LCZ_BLE_GW_DM_TELEM_LWM2M_TLS_TAG, lcz_lwm2m_dm_load_certs);
+						       CONFIG_LCZ_BLE_GW_DM_TELEM_LWM2M_TLS_TAG,
+						       lcz_lwm2m_dm_load_certs);
 			if (ret < 0) {
 				if (!lcz_lwm2m_client_is_connected(
 					    CONFIG_LCZ_BLE_GW_DM_CLIENT_INDEX)) {
@@ -858,7 +860,11 @@ static int factory_default_callback(uint16_t obj_inst_id, uint8_t *args, uint16_
 
 static void ble_gw_dm_thread(void *arg1, void *arg2, void *arg3)
 {
-	LOG_INF("BLE Gateway Device Manager Started");
+	char *temp_val;
+	char *device_id;
+
+	device_id = (char *)attr_get_quasi_static(ATTR_ID_device_id);
+	LOG_INF("BLE Gateway Device Manager started for device %s", device_id);
 
 	gwto.msgTask.rxer.id = FWK_ID_BLE_GW_DM;
 	gwto.msgTask.rxer.rxBlockTicks = K_FOREVER;
@@ -932,6 +938,26 @@ static void ble_gw_dm_thread(void *arg1, void *arg2, void *arg3)
 	lcz_lwm2m_client_register_pre_write_set_time_callback(current_time_pre_write_cb);
 	lcz_lwm2m_client_register_post_write_set_time_callback(current_time_post_write_cb);
 	lcz_lwm2m_client_register_factory_default_callback(factory_default_callback);
+
+	/* Setup default LwM2M client unique values if the attributes are not already set */
+	temp_val = (char *)attr_get_quasi_static(ATTR_ID_lwm2m_endpoint);
+	if (strlen(temp_val) <= 0) {
+		(void)attr_set_string(ATTR_ID_lwm2m_endpoint, (char const *)device_id,
+				      strlen(device_id));
+	}
+	temp_val = (char *)attr_get_quasi_static(ATTR_ID_lwm2m_psk_id);
+	if (strlen(temp_val) <= 0) {
+		(void)attr_set_string(ATTR_ID_lwm2m_psk_id, (char const *)device_id,
+				      strlen(device_id));
+	}
+	temp_val = (char *)attr_get_quasi_static(ATTR_ID_lwm2m_sn);
+	if (strlen(temp_val) <= 0) {
+		(void)attr_set_string(ATTR_ID_lwm2m_sn, (char const *)device_id, strlen(device_id));
+	}
+	temp_val = (char *)attr_get_quasi_static(ATTR_ID_lwm2m_mn);
+	if (strlen(temp_val) <= 0) {
+		(void)attr_set_string(ATTR_ID_lwm2m_mn, CONFIG_BOARD, strlen(CONFIG_BOARD));
+	}
 
 	Framework_StartTimer(&gwto.msgTask);
 
