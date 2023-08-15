@@ -446,7 +446,11 @@ static void gw_dm_fsm(void)
 			set_state(GW_DM_STATE_WAIT_FOR_NETWORK);
 		} else {
 			LCZ_BLE_GW_DM_MEMFAULT_POST_DATA_SYNC();
-			if (gwto.cnx_tries >=
+			if (attr_get_bool(ATTR_ID_dm_disable)) {
+				set_state(GW_DM_STATE_IDLE_STAY);
+				break;
+			}
+			else if (gwto.cnx_tries >=
 			    attr_get_uint32(ATTR_ID_dm_cnx_retries, DM_CNX_RETRIES_FALLBACK) +
 				    attr_get_uint32(ATTR_ID_dm_cnx_backoff_retries,
 						    DM_CNX_BACKOFF_RETRIES_FALLBACK)) {
@@ -911,9 +915,12 @@ static void ble_gw_dm_thread(void *arg1, void *arg2, void *arg3)
 	k_timer_init(&connection_watchdog_timer, connection_watchdog_timer_callback, NULL);
 	k_timer_init(&connection_watchdog_reboot_timer, connection_watchdog_timer_callback, NULL);
 	k_timer_init(&network_search_timer, network_search_timer_callback, NULL);
-	/* Start the reboot watchdog to reboot the system if we never connect to the server. */
-	k_timer_start(&connection_watchdog_reboot_timer,
-		      K_MINUTES(CONNECTION_WATCHDOG_REBOOT_TIMER_TIMEOUT_MINUTES), K_NO_WAIT);
+	if (!attr_get_bool(ATTR_ID_dm_disable)) {
+		/* Start the reboot watchdog to reboot the system if we never connect to the server. */
+		k_timer_start(&connection_watchdog_reboot_timer,
+			      K_MINUTES(CONNECTION_WATCHDOG_REBOOT_TIMER_TIMEOUT_MINUTES),
+			      K_NO_WAIT);
+	}
 
 	set_network_ready(false);
 	event_agent.callback = nm_event_callback;

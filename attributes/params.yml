@@ -17,6 +17,20 @@ attributes:
     x-savable: false
     x-writable: false
     summary: Bluetooth address
+  - name: dm_disable
+    required: true
+    schema:
+      maximum: 1
+      minimum: 0
+      type: integer
+    x-ctype: bool
+    x-broadcast: true
+    x-default: 0
+    x-prepare: false
+    x-readable: true
+    x-savable: true
+    x-writable: true
+    summary: "If true, the device management LwM2M connection will not start."
   - name: dm_cnx_delay
     required: true
     schema:
@@ -52,7 +66,7 @@ attributes:
     schema:
       type: integer
       minimum: 2
-      maximum: 600
+      maximum: 65535
     x-ctype: uint16_t
     x-broadcast: true
     x-default: 300
